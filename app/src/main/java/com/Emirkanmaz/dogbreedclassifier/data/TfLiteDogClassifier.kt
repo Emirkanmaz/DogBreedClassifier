@@ -2,6 +2,7 @@ package com.Emirkanmaz.dogbreedclassifier.data
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.util.Log
 import android.view.Surface
 import com.Emirkanmaz.dogbreedclassifier.domain.Classification
 import com.Emirkanmaz.dogbreedclassifier.domain.DogClassifier
@@ -32,7 +33,7 @@ class TfLiteDogClassifier(
         try {
             classifier = ImageClassifier.createFromFileAndOptions(
                 context,
-                "model.tflite",
+                "model_with_metadata.tflite",
                 options
             )
         } catch (e: IllegalStateException) {
@@ -40,12 +41,23 @@ class TfLiteDogClassifier(
         }
     }
 
-    override fun classify(bitmap: Bitmap, rotation: Int): List<Classification> {
+    fun loadLabels(context: Context): List<String> {
+        val labels = mutableListOf<String>()
+        context.assets.open("labels.txt").bufferedReader().useLines { lines ->
+            labels.addAll(lines)
+        }
+        return labels
+    }
 
-        if(classifier == null) {
+    override fun classify(bitmap: Bitmap, rotation: Int): List<Classification> {
+        if (classifier == null) {
             setupClassifier()
         }
-        val imageProcessor = ImageProcessor.Builder().build()
+
+        val labels = loadLabels(context)
+
+        val imageProcessor = ImageProcessor.Builder()
+            .build()
         val tensorImage = imageProcessor.process(TensorImage.fromBitmap(bitmap))
 
         val imageProcessingOptions = ImageProcessingOptions.builder()
@@ -54,15 +66,24 @@ class TfLiteDogClassifier(
 
         val results = classifier?.classify(tensorImage, imageProcessingOptions)
 
-        return results?.flatMap { classications ->
-            classications.categories.map { category ->
+        results?.forEach { classification ->
+            classification.categories.forEach { category ->
+                Log.i("DogBreedClassifier", "Index: ${category.index}, Score: ${category.score}")
+            }
+        }
+
+        return results?.flatMap { classifications ->
+            classifications.categories.map { category ->
                 Classification(
-                    name = category.displayName,
+                    name = labels.getOrNull(category.index) ?: "",  // Map index to label
                     score = category.score
                 )
             }
-        }?.distinctBy { it.name } ?: emptyList()
+        }?.sortedByDescending { it.score }  // Sort by score in descending order
+            ?.take(3)  // Take the top 3 results
+            ?: emptyList()
     }
+
 
     private fun getOrientationFromRotation(rotation: Int): ImageProcessingOptions.Orientation {
         return when(rotation) {

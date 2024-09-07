@@ -1,6 +1,5 @@
 package com.Emirkanmaz.dogbreedclassifier
 
-import DogImageAnalyzer
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -29,6 +28,7 @@ import androidx.core.content.ContextCompat
 import com.Emirkanmaz.dogbreedclassifier.data.TfLiteDogClassifier
 import com.Emirkanmaz.dogbreedclassifier.domain.Classification
 import com.Emirkanmaz.dogbreedclassifier.presentation.CameraPreview
+import com.Emirkanmaz.dogbreedclassifier.presentation.DogImageAnalyzer
 import com.Emirkanmaz.dogbreedclassifier.ui.theme.DogBreedClassifierTheme
 
 class MainActivity : ComponentActivity() {
@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
                             context = applicationContext
                         ),
                         onResults = {
+                            println(it)
                             classifications = it
                         }
                     )
@@ -76,7 +77,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         classifications.forEach {
                             Text(
-                                text = it.name,
+                                text = "${it.name} - ${it.score * 100}%",  // Display the name and score
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(MaterialTheme.colorScheme.primaryContainer)
@@ -87,6 +88,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
+
                 }
             }
         }
